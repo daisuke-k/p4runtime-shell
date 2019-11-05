@@ -146,6 +146,7 @@ class P4RuntimeClient:
             logging.critical("Failed to connect to P4Runtime server")
             sys.exit(1)
         self.stub = p4runtime_pb2_grpc.P4RuntimeStub(self.channel)
+        self.stream_recv_handlers = []
         self.set_up_stream()
 
     def set_up_stream(self):
@@ -171,12 +172,26 @@ class P4RuntimeClient:
                 logging.critical(e)
                 self.stream_in_q.put(None)
 
+        def handle_stream_in(stream):
+            while True:
+                msg = self.stream_in_q.get()
+                for h in self.stream_recv_handlers:
+                    try:
+                        h(msg)
+                    except:
+                        pass
+            return
+
         self.stream = self.stub.StreamChannel(stream_req_iterator())
         self.stream_recv_thread = threading.Thread(
             target=stream_recv_wrapper, args=(self.stream,))
         self.stream_recv_thread.start()
 
         self.handshake()
+
+        self.stream_recv_handle_thread = threading.Thread(
+            target=handle_stream_in, args=(self.stream,))
+        self.stream_recv_handle_thread.start()
 
     def handshake(self):
         req = p4runtime_pb2.StreamMessageRequest()

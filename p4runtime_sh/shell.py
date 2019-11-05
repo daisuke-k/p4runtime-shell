@@ -2278,6 +2278,14 @@ def Write(input_):
             "Write only works with files at the moment and '{}' is not a file".format(
                 input_))
 
+def StreamRecvHandler(func):
+    """
+    Add passed function to the list of handlers to handle stream_recv
+    """
+    try:
+        client.stream_recv_handlers.remove(func)
+    except ValueError:
+        client.stream_recv_handlers.append(func)
 
 # see https://ipython.readthedocs.io/en/stable/config/details.html
 class MyPrompt(Prompts):
@@ -2411,6 +2419,7 @@ def main():
         "Replica": Replica,
         "MulticastGroupEntry": MulticastGroupEntry,
         "CloneSessionEntry": CloneSessionEntry,
+        "StreamRecvHandler": StreamRecvHandler,
     }
 
     for obj_type in P4Type:
